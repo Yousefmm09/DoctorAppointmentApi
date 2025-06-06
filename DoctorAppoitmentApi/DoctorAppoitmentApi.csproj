@@ -1,0 +1,125 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>10ebe0d3-4764-4e2f-8f73-394331c66da9</UserSecretsId>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Remove="wwwroot\frontend\assets\doc10 - Copy.png" />
+    <Content Remove="wwwroot\frontend\assets\doc11 - Copy.png" />
+    <Content Remove="wwwroot\frontend\assets\doc13 - Copy.png" />
+    <Content Remove="wwwroot\image\doc10.png" />
+    <Content Remove="wwwroot\image\doc11.png" />
+    <Content Remove="wwwroot\image\doc13 - Copy.png" />
+    <Content Remove="wwwroot\image\doc13.png" />
+    <Content Remove="wwwroot\image\doc14.png" />
+    <Content Remove="wwwroot\image\doc15.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.0-preview.1.24081.5" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.4" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.3">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="8.1.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore.Swagger" Version="8.1.2" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="8.1.2" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="8.1.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="wwwroot\frontend\.gitignore" />
+    <None Include="wwwroot\frontend\assets\doc10 - Copy.png" />
+    <None Include="wwwroot\frontend\assets\doc11 - Copy.png" />
+    <None Include="wwwroot\frontend\assets\doc13 - Copy.png" />
+    <None Include="wwwroot\frontend\eslint.config.js" />
+    <None Include="wwwroot\frontend\index.html" />
+    <None Include="wwwroot\frontend\postcss.config.js" />
+    <None Include="wwwroot\frontend\public\vite.svg" />
+    <None Include="wwwroot\frontend\README.md" />
+    <None Include="wwwroot\frontend\src\App.css" />
+    <None Include="wwwroot\frontend\src\App.jsx" />
+    <None Include="wwwroot\frontend\assets\about_image.png" />
+    <None Include="wwwroot\frontend\assets\about_image2.png" />
+    <None Include="wwwroot\frontend\assets\appointment_img.png" />
+    <None Include="wwwroot\frontend\assets\arrow_icon.svg" />
+    <None Include="wwwroot\frontend\assets\assets.js" />
+    <None Include="wwwroot\frontend\assets\chats_icon.svg" />
+    <None Include="wwwroot\frontend\assets\contact_image.png" />
+    <None Include="wwwroot\frontend\assets\cross_icon.png" />
+    <None Include="wwwroot\frontend\assets\Dermatologist.svg" />
+    <None Include="wwwroot\frontend\assets\doc1.png" />
+    <None Include="wwwroot\frontend\assets\doc10.png" />
+    <None Include="wwwroot\frontend\assets\doc11.png" />
+    <None Include="wwwroot\frontend\assets\doc12.png" />
+    <None Include="wwwroot\frontend\assets\doc13.png" />
+    <None Include="wwwroot\frontend\assets\doc14.png" />
+    <None Include="wwwroot\frontend\assets\doc15.png" />
+    <None Include="wwwroot\frontend\assets\doc2.png" />
+    <None Include="wwwroot\frontend\assets\doc22.png" />
+    <None Include="wwwroot\frontend\assets\doc23.png" />
+    <None Include="wwwroot\frontend\assets\doc3.png" />
+    <None Include="wwwroot\frontend\assets\doc4.png" />
+    <None Include="wwwroot\frontend\assets\doc5.png" />
+    <None Include="wwwroot\frontend\assets\doc6.png" />
+    <None Include="wwwroot\frontend\assets\doc7.png" />
+    <None Include="wwwroot\frontend\assets\doc8.png" />
+    <None Include="wwwroot\frontend\assets\doc9.png" />
+    <None Include="wwwroot\frontend\assets\dropdown_icon.svg" />
+    <None Include="wwwroot\frontend\assets\Gastroenterologist.svg" />
+    <None Include="wwwroot\frontend\assets\General_physician.svg" />
+    <None Include="wwwroot\frontend\assets\group_profiles.png" />
+    <None Include="wwwroot\frontend\assets\Gynecologist.svg" />
+    <None Include="wwwroot\frontend\assets\header_img.png" />
+    <None Include="wwwroot\frontend\assets\info_icon.svg" />
+    <None Include="wwwroot\frontend\assets\logo.svg" />
+    <None Include="wwwroot\frontend\assets\menu-board-svgrepo-com.svg" />
+    <None Include="wwwroot\frontend\assets\menu_icon.svg" />
+    <None Include="wwwroot\frontend\assets\Neurologist.svg" />
+    <None Include="wwwroot\frontend\assets\Newlogo.svg" />
+    <None Include="wwwroot\frontend\assets\Pediatricians.svg" />
+    <None Include="wwwroot\frontend\assets\profile_pic.png" />
+    <None Include="wwwroot\frontend\assets\razorpay_logo.png" />
+    <None Include="wwwroot\frontend\assets\stripe_logo.png" />
+    <None Include="wwwroot\frontend\assets\upload_area.png" />
+    <None Include="wwwroot\frontend\assets\upload_icon.png" />
+    <None Include="wwwroot\frontend\assets\verified_icon.svg" />
+    <None Include="wwwroot\frontend\src\components\Banner.jsx" />
+    <None Include="wwwroot\frontend\src\components\Footer.jsx" />
+    <None Include="wwwroot\frontend\src\components\Header.jsx" />
+    <None Include="wwwroot\frontend\src\components\NavBar.jsx" />
+    <None Include="wwwroot\frontend\src\components\RelatedDoctort.jsx" />
+    <None Include="wwwroot\frontend\src\components\SpecialityMenu.jsx" />
+    <None Include="wwwroot\frontend\src\components\TopDoctors.jsx" />
+    <None Include="wwwroot\frontend\src\context\AppContext.jsx" />
+    <None Include="wwwroot\frontend\src\index.css" />
+    <None Include="wwwroot\frontend\src\main.jsx" />
+    <None Include="wwwroot\frontend\src\pages\About.jsx" />
+    <None Include="wwwroot\frontend\src\pages\Appointment.jsx" />
+    <None Include="wwwroot\frontend\src\pages\Contact.jsx" />
+    <None Include="wwwroot\frontend\src\pages\Doctors.jsx" />
+    <None Include="wwwroot\frontend\src\pages\Home.jsx" />
+    <None Include="wwwroot\frontend\src\pages\Login.jsx" />
+    <None Include="wwwroot\frontend\src\pages\MyAppointment.jsx" />
+    <None Include="wwwroot\frontend\src\pages\MyProfile.jsx" />
+    <None Include="wwwroot\frontend\tailwind.config.js" />
+    <None Include="wwwroot\frontend\vite.config.js" />
+    <None Include="wwwroot\image\doc10.png" />
+    <None Include="wwwroot\image\doc11.png" />
+    <None Include="wwwroot\image\doc13 - Copy.png" />
+    <None Include="wwwroot\image\doc13.png" />
+    <None Include="wwwroot\image\doc14.png" />
+    <None Include="wwwroot\image\doc15.png" />
+  </ItemGroup>
+
+</Project>

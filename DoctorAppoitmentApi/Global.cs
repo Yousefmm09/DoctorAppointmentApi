@@ -1,0 +1,16 @@
+﻿global using DoctorAppoitmentApi.Models;
+global using Microsoft.AspNetCore.Mvc;
+global using Microsoft.EntityFrameworkCore;
+global using System.ComponentModel.DataAnnotations;
+global using System.ComponentModel.DataAnnotations.Schema;
+global using DoctorAppoitmentApi.Data;
+global using Microsoft.AspNetCore.Http;
+global using Microsoft.AspNetCore.Mvc;
+global using System.Security.Cryptography;
+global using System.Text;
+global using DoctorAppoitmentApi.crypto;
+global using DoctorAppoitmentApi.Dto;
+global using Microsoft.AspNetCore.Identity;
+global using Microsoft.AspNetCore.Authorization;
+global using Microsoft.AspNetCore.SignalR;
+global using System.Threading.Tasks;
