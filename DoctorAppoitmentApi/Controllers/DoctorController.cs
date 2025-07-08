@@ -544,5 +544,69 @@ namespace DoctorAppoitmentApi.Controllers
             });
         }
 
+        // New endpoint to get doctors a patient has had appointments with
+        [HttpGet("patient-appointments/{patientId}")]
+        public async Task<IActionResult> GetDoctorsWithPatientAppointments(int patientId)
+        {
+            try
+            {
+                // Verify the patient exists
+                var patient = await _context.Patients.FindAsync(patientId);
+                if (patient == null)
+                {
+                    return NotFound($"Patient with ID {patientId} not found");
+                }
+
+                // Get all doctors the patient has had appointments with
+                var doctorsWithAppointments = await _context.Appointments
+                    .Where(a => a.PatientID == patientId)
+                    .Select(a => a.DoctorID)
+                    .Distinct()
+                    .ToListAsync();
+
+                if (!doctorsWithAppointments.Any())
+                {
+                    return Ok(new { message = "No doctors found with appointments for this patient", data = new List<object>() });
+                }
+
+                // Get doctor details
+                var doctors = await _context.Doctors
+                    .Where(d => doctorsWithAppointments.Contains(d.Id))
+                    .Include(d => d.Specialization)
+                    .Include(d => d.Clinic)
+                    .Select(d => new
+                    {
+                        d.Id,
+                        d.FirstName,
+                        d.LastName,
+                        d.SpecializationID,
+                        d.ClinicID,
+                        d.Address,
+                        d.PhoneNumber,
+                        d.ProfilePicture,
+                        d.Description,
+                        d.Qualification,
+                        ClinicName = d.Clinic != null ? d.Clinic.Name : null,
+                        SpecializationName = d.Specialization != null ? d.Specialization.Name : null,
+                        d.Experience,
+                        d.CurrentFee,
+                        d.Email,
+                        // Get the most recent appointment date for each doctor
+                        LastAppointment = _context.Appointments
+                            .Where(a => a.DoctorID == d.Id && a.PatientID == patientId)
+                            .OrderByDescending(a => a.AppointmentDate)
+                            .Select(a => a.AppointmentDate)
+                            .FirstOrDefault()
+                    })
+                    .OrderByDescending(d => d.LastAppointment) // Order by most recent appointment
+                    .ToListAsync();
+
+                return Ok(new { message = "Doctors retrieved successfully", data = doctors });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while fetching doctors", error = ex.Message });
+            }
+        }
     }
 }

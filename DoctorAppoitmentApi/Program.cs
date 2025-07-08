@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using DoctorAppoitmentApi.Service;
 using DoctorAppoitmentApi.Repository;
 using Microsoft.Extensions.Caching.Memory;
+using System;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -52,7 +53,12 @@ builder.Services.AddCors(options =>
         builder =>
         {
             builder
-            .WithOrigins("http://localhost:5173")
+            .SetIsOriginAllowed(origin => {
+                return origin.EndsWith(".paymob.com") ||
+                       origin.Contains("localhost") ||
+                       origin.Contains("127.0.0.1") ||
+                       origin == "https://accept.paymobsolutions.com";
+            })
             .AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials();
@@ -123,30 +129,95 @@ builder.Services.AddScoped<IOpenAIService>(provider => new AdvancedOpenAIService
     provider.GetService<ILogger<AdvancedOpenAIService>>()
 ));
 
+// Add Email Service
+builder.Services.AddScoped<IEmailService, EmailService>();
+
+// Add SMS Service
+builder.Services.AddHttpClient<ISmsService, SmsService>();
+builder.Services.AddScoped<ISmsService>(provider => 
+    new SmsService(
+        provider.GetRequiredService<IConfiguration>(),
+        provider.GetRequiredService<ILogger<SmsService>>(),
+        provider.GetRequiredService<HttpClient>()
+    )
+);
+
+// Add Background Service for Appointment Reminders
+builder.Services.AddHostedService<AppointmentReminderService>();
+
+// Add Background Service for Account Cleanup
+builder.Services.AddHostedService<AccountCleanupService>();
+
+// Add PaymobService
+builder.Services.AddHttpClient<PaymobService>();
+builder.Services.AddScoped<PaymobService>(provider => 
+    new PaymobService(
+        provider.GetRequiredService<HttpClient>(),
+        provider.GetRequiredService<IConfiguration>(),
+        provider.GetRequiredService<ILogger<PaymobService>>()
+    )
+);
+
 // Add RAG service registration
 builder.Services.AddScoped<IRAGService, RAGService>();
 
-
 builder.Services.AddScoped<IDoctorRepository, DoctorRepository>();
-builder.Services.AddScoped<ICombinedChatService>(provider => {
-    var logger = provider.GetService<ILogger<CombinedChatService>>();
+
+// Add LocalLLM service
+builder.Services.AddScoped<ILocalLLMService>(provider => {
+    var logger = provider.GetService<ILogger<LocalLLMService>>();
     var httpClient = provider.GetRequiredService<IHttpClientFactory>().CreateClient();
     var config = provider.GetRequiredService<IConfiguration>();
     var cache = provider.GetRequiredService<IMemoryCache>();
-    var context = provider.GetRequiredService<AppDbContext>();
-    var openAIService = provider.GetRequiredService<IOpenAIService>();
-    var doctorRepository = provider.GetRequiredService<IDoctorRepository>();
-
-    return new CombinedChatService(
-        openAIService,
-        doctorRepository,
-        cache,
-        context,
-        config,
-        httpClient,
-        logger
-    );
+    
+    return new LocalLLMService(httpClient, config, cache, logger);
 });
+
+// Replace CombinedChatService with HybridChatService when UseLocalLLM is true
+if (bool.Parse(builder.Configuration["LocalLLM:UseLocalLLM"] ?? "false"))
+{
+    builder.Services.AddScoped<ICombinedChatService>(provider => {
+        var logger = provider.GetService<ILogger<HybridChatService>>();
+        var localKnowledgeBase = provider.GetRequiredService<ILocalKnowledgeBase>();
+        var localLLMService = provider.GetRequiredService<ILocalLLMService>();
+        var openAIService = provider.GetRequiredService<IOpenAIService>();
+        var cache = provider.GetRequiredService<IMemoryCache>();
+        var config = provider.GetRequiredService<IConfiguration>();
+        
+        return new HybridChatService(
+            localKnowledgeBase,
+            localLLMService,
+            openAIService,
+            cache,
+            config,
+            logger
+        );
+    });
+}
+else
+{
+    // Use original CombinedChatService implementation
+    builder.Services.AddScoped<ICombinedChatService>(provider => {
+        var logger = provider.GetService<ILogger<CombinedChatService>>();
+        var httpClient = provider.GetRequiredService<IHttpClientFactory>().CreateClient();
+        var config = provider.GetRequiredService<IConfiguration>();
+        var cache = provider.GetRequiredService<IMemoryCache>();
+        var context = provider.GetRequiredService<AppDbContext>();
+        var openAIService = provider.GetRequiredService<IOpenAIService>();
+        var doctorRepository = provider.GetRequiredService<IDoctorRepository>();
+
+        return new CombinedChatService(
+            openAIService,
+            doctorRepository,
+            cache,
+            context,
+            config,
+            httpClient,
+            logger
+        );
+    });
+}
+
 builder.Services.AddScoped<ChatService>(provider => new ChatService(
     provider.GetRequiredService<IOpenAIService>(),
     provider.GetRequiredService<IDoctorRepository>(),
@@ -163,6 +234,16 @@ builder.Services.AddScoped<ILocalKnowledgeBase>(provider => {
     var logger = provider.GetService<ILogger<LocalKnowledgeBase>>();
     return (ILocalKnowledgeBase)new LocalKnowledgeBase(doctorRepository, context, logger);
 });
+
+// Register MedLLama Service
+builder.Services.AddHttpClient<IMedLLamaService, MedLLamaService>(client => {
+    var medLLamaApiUrl = builder.Configuration["MedLLama:ApiUrl"] ?? "http://localhost:5001";
+    client.BaseAddress = new Uri(medLLamaApiUrl);
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+
+// Add Notification Service
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 var app = builder.Build();
 
@@ -206,6 +287,7 @@ app.UseAuthorization();
 
 // SignalR Hub
 app.MapHub<ChatHub>("/chathub");
+app.MapHub<NotificationHub>("/notificationhub");
 
 // Controllers
 app.MapControllers();

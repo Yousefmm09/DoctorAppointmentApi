@@ -7,6 +7,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using DoctorAppoitmentApi.Service;
+using DoctorAppoitmentApi.Models;
 
 namespace DoctorAppoitmentApi.Controllers
 {
@@ -16,11 +18,19 @@ namespace DoctorAppoitmentApi.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ILogger<AppointmentController> _logger;
+        private readonly IEmailService _emailService;
+        private readonly INotificationService _notificationService;
 
-        public AppointmentController(AppDbContext context, ILogger<AppointmentController> logger)
+        public AppointmentController(
+            AppDbContext context, 
+            ILogger<AppointmentController> logger,
+            IEmailService emailService,
+            INotificationService notificationService)
         {
             _context = context;
             _logger = logger;
+            _emailService = emailService;
+            _notificationService = notificationService;
         }
 
         #region GET Methods
@@ -166,6 +176,60 @@ namespace DoctorAppoitmentApi.Controllers
             return Ok(new { isAvailable });
         }
 
+        [HttpGet("doctor/{doctorId}/with-payments")]
+        public async Task<IActionResult> GetAppointmentsWithPaymentsForDoctor(int doctorId)
+        {
+            try
+            {
+                _logger.LogInformation($"Getting appointments with payment info for doctor ID: {doctorId}");
+                
+                var appointments = await _context.Appointments
+                    .Include(a => a.Patient)
+                    .ThenInclude(p => p.ApplicationUser)
+                    .Include(a => a.Doctor)
+                    .ThenInclude(d => d.ApplicationUser)
+                    .Include(a => a.Payments) // Include payment information
+                    .Where(a => a.DoctorID == doctorId)
+                    .OrderByDescending(a => a.AppointmentDate)
+                    .ToListAsync();
+
+                var result = appointments.Select(appointment => new
+                {
+                    id = appointment.Id,
+                    doctorId = appointment.DoctorID,
+                    patientId = appointment.PatientID,
+                    patientName = $"{appointment.Patient?.ApplicationUser?.FirstName} {appointment.Patient?.ApplicationUser?.LastName}",
+                    patientEmail = appointment.Patient?.ApplicationUser?.Email,
+                    patientPhoneNumber = appointment.Patient?.PhoneNumber,
+                    patientProfilePicture = appointment.Patient?.ProfilePicture,
+                    appointmentDate = appointment.AppointmentDate,
+                    startTime = appointment.StartTime,
+                    endTime = appointment.EndTime,
+                    reason = appointment.Reason,
+                    status = appointment.Status,
+                    isConfirmed = appointment.IsConfirmed,
+                    doctorName = $"{appointment.Doctor?.ApplicationUser?.FirstName} {appointment.Doctor?.ApplicationUser?.LastName}",
+                    appointmentFee = appointment.AppointmentFee,
+                    // Include payment information
+                    payment = appointment.Payments != null && appointment.Payments.Any() ? 
+                        new {
+                            status = appointment.Payments.OrderByDescending(p => p.PaymentDate).FirstOrDefault()?.Status,
+                            amount = appointment.Payments.OrderByDescending(p => p.PaymentDate).FirstOrDefault()?.Amount,
+                            paymentMethod = appointment.Payments.OrderByDescending(p => p.PaymentDate).FirstOrDefault()?.PaymentMethod,
+                            paymentDate = appointment.Payments.OrderByDescending(p => p.PaymentDate).FirstOrDefault()?.PaymentDate,
+                            transactionId = appointment.Payments.OrderByDescending(p => p.PaymentDate).FirstOrDefault()?.TransactionId
+                        } : null
+                }).ToList();
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error getting appointments with payments for doctor ID: {doctorId}");
+                return StatusCode(500, new { error = "Failed to get appointments with payment information", details = ex.Message });
+            }
+        }
+
         #endregion
 
         #region POST Methods
@@ -301,6 +365,18 @@ namespace DoctorAppoitmentApi.Controllers
                         createdAppointment.StartTime.ToString("hh\\:mm")
                     );
 
+                    // Send notifications
+                    try
+                    {
+                        // Send notifications using the notification service
+                        await _notificationService.NotifyAppointmentCreatedAsync(createdAppointment);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Just log the error but don't interrupt the appointment creation flow
+                        _logger.LogError(ex, "Error sending notifications for appointment {AppointmentId}", createdAppointment.Id);
+                    }
+
                     return Ok(MapToResponseDto(createdAppointment));
                 }
                 catch (Exception ex)
@@ -318,18 +394,40 @@ namespace DoctorAppoitmentApi.Controllers
 
         // Add these helper methods
 
-        //cancle appointment
+        //cancel appointment
         [HttpPost("cancel/{id}")]
         public async Task<IActionResult> CancelAppointmentAsync(int id)
         {
-            var appointment = await _context.Appointments.Include(a => a.Patient).FirstOrDefaultAsync(a => a.Id == id);
-            if (appointment == null)
-                return NotFound("Appointment not found.");
             try
             {
+                var appointment = await _context.Appointments
+                    .Include(a => a.Doctor)
+                        .ThenInclude(d => d.ApplicationUser)
+                    .Include(a => a.Patient)
+                        .ThenInclude(p => p.ApplicationUser)
+                    .FirstOrDefaultAsync(a => a.Id == id);
+
+                if (appointment == null)
+                    return NotFound("Appointment not found.");
+
+                if (appointment.Status == "Cancelled")
+                {
+                    return BadRequest("Appointment is already cancelled.");
+                }
+
                 appointment.Status = "Cancelled";
-                appointment.IsConfirmed = false;
                 await _context.SaveChangesAsync();
+
+                // Send cancellation notification
+                try
+                {
+                    await _notificationService.NotifyAppointmentCancelledAsync(appointment);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error sending cancellation notification for appointment {AppointmentId}", id);
+                }
+
                 return Ok(MapToResponseDto(appointment));
             }
             catch (Exception ex)
@@ -343,16 +441,34 @@ namespace DoctorAppoitmentApi.Controllers
         [HttpPost("confirm/{id}")]
         public async Task<IActionResult> ConfirmAppointmentAsync(int id)
         {
-            var appointment = await _context.Appointments.Include(a => a.Patient).FirstOrDefaultAsync(a => a.Id == id);
-            if (appointment == null)
-                return NotFound("Appointment not found.");
-
             try
             {
-                appointment.IsConfirmed = true;
-                appointment.Status = "Confirmed";
+                var appointment = await _context.Appointments
+                    .Include(a => a.Doctor)
+                        .ThenInclude(d => d.ApplicationUser)
+                    .Include(a => a.Patient)
+                        .ThenInclude(p => p.ApplicationUser)
+                    .FirstOrDefaultAsync(a => a.Id == id);
 
+                if (appointment == null)
+                    return NotFound("Appointment not found.");
+
+                if (appointment.IsConfirmed)
+                    return BadRequest("Appointment is already confirmed.");
+
+                appointment.IsConfirmed = true;
                 await _context.SaveChangesAsync();
+
+                // Send confirmation notification
+                try
+                {
+                    await _notificationService.NotifyAppointmentConfirmedAsync(appointment);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error sending confirmation notification for appointment {AppointmentId}", id);
+                }
+
                 return Ok(MapToResponseDto(appointment));
             }
             catch (Exception ex)
@@ -681,13 +797,13 @@ namespace DoctorAppoitmentApi.Controllers
             return new AppointmentResponseDto
             {
                 Id = appointment.Id,
-                PatientName = $"{appointment.Patient?.FirstName ?? ""} {appointment.Patient?.LastName ?? ""}".Trim(),
-                DoctorName = $"{appointment.Doctor?.FirstName ?? ""} {appointment.Doctor?.LastName ?? ""}".Trim(),
+                PatientName = appointment.Patient != null ? $"{appointment.Patient.FirstName} {appointment.Patient.LastName}".Trim() : "Unknown Patient",
+                DoctorName = appointment.Doctor != null ? $"{appointment.Doctor.FirstName} {appointment.Doctor.LastName}".Trim() : "Unknown Doctor",
                 Specialization = appointment.Doctor?.Specialization?.Name ?? "Unknown",
                 AppointmentDate = appointment.AppointmentDate,
                 StartTime = appointment.StartTime,
                 EndTime = appointment.EndTime,
-                Status = appointment.Status ?? "Pending", // ممكن تحط Default Status لو عايز
+                Status = appointment.Status ?? "Pending",
                 IsConfirmed = appointment.IsConfirmed,
                 AppointmentFee = appointment.AppointmentFee ?? "0",
                 Reason = appointment.Reason ?? "",
@@ -697,8 +813,8 @@ namespace DoctorAppoitmentApi.Controllers
 
         private TimeSpan RoundToNearestInterval(TimeSpan time, TimeSpan interval)
         {
-            long ticks = (long)(Math.Round(time.Ticks / (double)interval.Ticks) * interval.Ticks);
-            return TimeSpan.FromTicks(ticks);
+            var totalMinutes = Math.Round(time.TotalMinutes / interval.TotalMinutes) * interval.TotalMinutes;
+            return TimeSpan.FromMinutes(totalMinutes);
         }
 
         private bool IsBreakTime(TimeSpan appointmentTime, TimeSpan breakStart, TimeSpan breakEnd)
@@ -709,16 +825,44 @@ namespace DoctorAppoitmentApi.Controllers
         private async Task<TimeSpan?> FindNextAvailableSlot(int doctorId, DateTime date, TimeSpan openTime, TimeSpan closeTime)
         {
             var slotDuration = TimeSpan.FromMinutes(30);
-
-            for (var time = openTime; time < closeTime; time = time.Add(slotDuration))
+            for (var time = openTime; time < closeTime; time += slotDuration)
             {
-                if (await IsTimeSlotAvailable(doctorId, date, time, time.Add(slotDuration)))
+                var endTime = time + slotDuration;
+                if (await IsTimeSlotAvailable(doctorId, date, time, endTime))
                 {
                     return time;
                 }
             }
-
             return null;
+        }
+        
+        [HttpPost("{id}/send-reminder")]
+        public async Task<IActionResult> SendReminderAsync(int id)
+        {
+            try
+            {
+                var appointment = await _context.Appointments
+                    .Include(a => a.Doctor)
+                        .ThenInclude(d => d.ApplicationUser)
+                    .Include(a => a.Patient)
+                        .ThenInclude(p => p.ApplicationUser)
+                    .FirstOrDefaultAsync(a => a.Id == id);
+
+                if (appointment == null)
+                {
+                    return NotFound("Appointment not found");
+                }
+
+                // Send reminder notification
+                await _notificationService.SendAppointmentReminderAsync(appointment);
+                
+                return Ok(new { message = "Reminder sent successfully", appointment = MapToResponseDto(appointment) });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending reminder for appointment {AppointmentId}", id);
+                return StatusCode(500, "An error occurred while sending appointment reminder");
+            }
         }
 
         #endregion

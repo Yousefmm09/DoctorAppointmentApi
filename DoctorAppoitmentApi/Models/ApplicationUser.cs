@@ -29,7 +29,11 @@ namespace DoctorAppoitmentApi.Models
 
         [NotMapped]
         public IFormFile? ProfilePictureFile { get; set; }
-        //doctor
+
+        // GDPR data removal tracking
+        public DateTime? DeletionRequestedAt { get; set; }
         
+        // Track account creation date
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

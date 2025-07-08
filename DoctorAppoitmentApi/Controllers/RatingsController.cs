@@ -32,6 +32,29 @@ namespace DoctorAppoitmentApi.Controllers
             var doctor = await _context.Doctors.FindAsync(dto.DoctorId);
             if (doctor == null) return NotFound("Doctor not found.");
 
+            // Check if patient has had an appointment with this doctor
+            var hasAppointment = await _context.Appointments
+                .AnyAsync(a => a.PatientID == patient.Id && a.DoctorID == dto.DoctorId);
+
+            if (!hasAppointment)
+            {
+                return BadRequest("You can only rate doctors you've had appointments with.");
+            }
+
+            // Check if patient has already rated this doctor
+            var existingRating = await _context.Ratings
+                .FirstOrDefaultAsync(r => r.PatientId == patient.Id && r.DoctorId == dto.DoctorId);
+
+            if (existingRating != null)
+            {
+                // Update existing rating instead of creating a new one
+                existingRating.Score = dto.score;
+                existingRating.Comment = dto.comment;
+                existingRating.CreatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+                return Ok(new { message = "Rating updated successfully." });
+            }
+
             var rating = new Rating
             {
                 PatientId = patient.Id,

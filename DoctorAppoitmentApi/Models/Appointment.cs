@@ -1,4 +1,6 @@
 ﻿using System.Numerics;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DoctorAppoitmentApi.Models
 {
@@ -34,7 +36,10 @@ namespace DoctorAppoitmentApi.Models
         public virtual Patient Patient { get; set; }
 
         [ForeignKey("DoctorID")]
-        public  Doctors Doctor { get; set; }
+        public Doctors Doctor { get; set; }
+
+        // Navigation property for payments
+        public virtual ICollection<Payment> Payments { get; set; }
 
         [NotMapped]
         public bool IsOverdue

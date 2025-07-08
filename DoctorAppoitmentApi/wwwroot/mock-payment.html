@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mock Payment Gateway</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+        .credit-card {
+            background: linear-gradient(135deg, #4b6cb7 0%, #182848 100%);
+            border-radius: 15px;
+            color: white;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .credit-card-chip {
+            background: linear-gradient(135deg, #ffcc00 0%, #d4af37 100%);
+            border-radius: 5px;
+            height: 40px;
+            width: 60px;
+        }
+        .success-animation {
+            animation: fadeInScale 1s ease-in-out;
+        }
+        @keyframes fadeInScale {
+            0% { opacity: 0; transform: scale(0.8); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        #discountMessage {
+            display: none;
+            text-align: center;
+            font-size: 18px;
+            font-family: 'Gotham', sans-serif;
+            color: #7F98C5;
+            margin-bottom: 10px;
+        }
+        #submitButton:disabled {
+            cursor: not-allowed;
+            background-color: #E8E8E8;
+            border: none;
+            color: #fff;
+        }
+        #submitButtonWaiting {
+            display: none;
+        }
+        #submitButtonWaiting>i {
+            font-size: 20px;
+        }
+        .checkInstallmentTextDiv {
+            display: none;
+            width: 100%;
+            height: 30px;
+            padding: 0px 5px;
+            box-sizing: border-box;
+        }
+        .checkInstallmentTextDiv p {
+            display: inline-block;
+            float: left;
+            margin: 0px;
+            font-size: 14px;
+            line-height: 25px;
+            color: #00C814;
+        }
+        .checkInstallmentTextDiv span {
+            display: inline-block;
+            float: right;
+            margin: 0px;
+            font-size: 14px;
+            line-height: 25px;
+            color: #1782FB;
+            text-decoration: underline;
+        }
+        .checkInstallmentTextDiv span:hover {
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        @media only screen and (max-width: 600px) {
+            .checkInstallmentTextDiv {
+                width: 100%;
+                height: 60px;
+            }
+            .checkInstallmentTextDiv p {
+                text-align: center;
+                display: block;
+                width: 100%;
+            }
+            .checkInstallmentTextDiv span {
+                text-align: center;
+                display: block;
+                width: 100%;
+            }
+        }
+        .installmentsDiv {
+            display: none;
+            margin: 30px 0px;
+        }
+        .installmentsHead {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        .installmentsHead>img {
+            height: 35px;
+            width: auto;
+            margin: auto;
+        }
+        .installmentsHead p {
+            font-size: 20px;
+            color: #01338D;
+            margin: 0px;
+        }
+        #installmentsBody {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 0px 15px;
+        }
+        #installmentsBody .installmentsEle {
+            display: inline-block;
+            border: 2px solid #BFDFFD;
+            border-radius: 15px;
+            text-align: center;
+            height: 50px;
+            min-width: 150px;
+            padding: 10px 0px;
+            margin: 0px 7px;
+            margin-bottom: 15px;
+            transition: all ease-in-out .3s;
+        }
+        #installmentsBody .installmentsEle>p {
+            line-height: 26px;
+            font-size: 22px;
+            color: #01338D;
+            margin: 0px;
+            margin-bottom: 5px;
+        }
+        #installmentsBody .installmentsEle>span {
+            list-style: 18px;
+            font-size: 15px;
+            color: #0080F9;
+        }
+        #installmentsBody .installmentsEle.selected {
+            border: 2px solid #0080F9;
+        }
+        #installmentsBody .installmentsEle:hover {
+            cursor: pointer;
+            border: 2px solid #0080F9;
+        }
+        #checkInstallmentBtn {
+            display: none;
+        }
+        .formRowContainer {
+            min-height: 300px;
+        }
+        .installmentsSubmitDiv {
+            width: 100%;
+            text-align: center;
+            margin-top: 30px;
+        }
+        .installmentsSubmitDiv>input {
+            background: #1782FB 0% 0% no-repeat padding-box;
+            border-radius: 11px;
+            border: none;
+            padding: 0px;
+            text-align: center;
+            font-weight: 300;
+            color: #FFFFFF;
+            margin: auto;
+            cursor: pointer;
+            width: 400px;
+            max-width: 100%;
+            height: 45px;
+            font-size: 19px;
+            line-height: 45px;
+            outline: none !important;
+            transition: all ease-in-out .3s;
+        }
+        .installmentsSubmitDiv>input:hover {
+            transform: translateY(-2px);
+            box-shadow: 2px 2px 6px #ccc;
+        }
+        .installmentsSubmitDiv>input:disabled {
+            cursor: not-allowed;
+            opacity: .4;
+        }
+        .copyWrite .logos {
+            text-align: center;
+            margin-top: 25px;
+        }
+        .copyWrite .logos>img {
+            display: inline-block;
+            height: 26px;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden">
+        <div class="bg-blue-600 text-white p-4 flex items-center justify-between">
+            <h2 class="text-xl font-semibold">Mock Payment Gateway</h2>
+            <button id="closeBtn" class="text-white hover:text-gray-200">&times;</button>
+        </div>
+        
+        <div id="paymentForm" class="p-6">
+            <div class="mb-6">
+                <h3 class="font-semibold text-lg mb-2">Payment Details</h3>
+                <div class="bg-gray-50 p-4 rounded mb-4">
+                    <p><span class="font-medium">Appointment ID:</span> <span id="appointmentId">-</span></p>
+                    <p><span class="font-medium">Patient:</span> <span id="patientName">-</span></p>
+                    <p><span class="font-medium">Amount:</span> <span id="amount">$0.00</span></p>
+                </div>
+                
+                <div class="checkInstallmentTextDiv">
+                    <p id="installmentAvailable">Installment payment available!</p>
+                    <span id="checkInstallmentLink">Check installment plans</span>
+                </div>
+                
+                <div class="credit-card p-4 mb-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <div class="credit-card-chip"></div>
+                        <span class="text-lg font-bold">Card Details</span>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm mb-1 text-gray-200">Card Number</label>
+                        <input type="text" id="cardNumber" value="4242 4242 4242 4242" class="w-full bg-transparent border-b border-gray-300 py-2 focus:outline-none">
+                    </div>
+                    <div class="flex justify-between">
+                        <div class="w-1/2 pr-2">
+                            <label class="block text-sm mb-1 text-gray-200">Expiry</label>
+                            <input type="text" id="expDate" value="12/25" class="w-full bg-transparent border-b border-gray-300 py-2 focus:outline-none">
+                        </div>
+                        <div class="w-1/2 pl-2">
+                            <label class="block text-sm mb-1 text-gray-200">CVV</label>
+                            <input type="text" id="cvv" value="123" class="w-full bg-transparent border-b border-gray-300 py-2 focus:outline-none">
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <label class="block text-sm mb-1 text-gray-200">Card Holder Name</label>
+                        <input type="text" id="cardHolder" value="John Doe" class="w-full bg-transparent border-b border-gray-300 py-2 focus:outline-none">
+                    </div>
+                </div>
+                
+                <button id="payBtn" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-semibold">
+                    Process Payment
+                </button>
+                
+                <div class="mt-4 text-center">
+                    <button id="checkInstallmentBtn" class="text-sm text-blue-600 hover:underline">
+                        Check Installment Options
+                    </button>
+                    <button id="failBtn" class="text-sm text-red-500 hover:underline ml-4">
+                        Simulate Failed Payment
+                    </button>
+                </div>
+            </div>
+            
+            <div class="installmentsDiv">
+                <div class="installmentsHead">
+                    <p>Select Installment Plan</p>
+                </div>
+                <div id="installmentsBody">
+                    <div class="installmentsEle" data-months="3">
+                        <p>3</p>
+                        <span>months</span>
+                    </div>
+                    <div class="installmentsEle" data-months="6">
+                        <p>6</p>
+                        <span>months</span>
+                    </div>
+                    <div class="installmentsEle" data-months="12">
+                        <p>12</p>
+                        <span>months</span>
+                    </div>
+                </div>
+                <div class="installmentsSubmitDiv">
+                    <input type="button" id="installmentSubmitBtn" value="Confirm Plan" disabled>
+                </div>
+            </div>
+        </div>
+        
+        <div id="successScreen" class="p-6 hidden">
+            <div class="flex flex-col items-center justify-center py-8 success-animation">
+                <svg class="w-16 h-16 text-green-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <h3 class="text-xl font-semibold text-green-500 mb-2">Payment Successful!</h3>
+                <p class="text-gray-600 mb-6">Your appointment has been confirmed.</p>
+                <p id="installmentConfirmation" class="text-sm text-blue-600 mb-4 hidden">Your payment will be processed in <span id="installmentMonths">0</span> monthly installments.</p>
+                <button id="doneBtn" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+                    Done
+                </button>
+            </div>
+        </div>
+        
+        <div id="failureScreen" class="p-6 hidden">
+            <div class="flex flex-col items-center justify-center py-8 success-animation">
+                <svg class="w-16 h-16 text-red-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <h3 class="text-xl font-semibold text-red-500 mb-2">Payment Failed</h3>
+                <p class="text-gray-600 mb-6">There was an issue processing your payment.</p>
+                <button id="retryBtn" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+                    Try Again
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Parse URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const appointmentId = urlParams.get('appointmentId') || '0';
+        const amount = urlParams.get('amount') || '0.00';
+        const firstName = urlParams.get('firstName') || 'Patient';
+        const lastName = urlParams.get('lastName') || 'User';
+        
+        // Display payment details
+        document.getElementById('appointmentId').textContent = appointmentId;
+        document.getElementById('patientName').textContent = `${firstName} ${lastName}`;
+        document.getElementById('amount').textContent = `$${amount}`;
+        
+        // Show installment option for payments over $100
+        const amountValue = parseFloat(amount);
+        if (amountValue >= 100) {
+            document.querySelector('.checkInstallmentTextDiv').style.display = 'block';
+            document.getElementById('checkInstallmentBtn').style.display = 'inline-block';
+        }
+        
+        // Installment plans functionality
+        let selectedInstallmentMonths = 0;
+        
+        document.getElementById('checkInstallmentBtn').addEventListener('click', showInstallmentPlans);
+        document.getElementById('checkInstallmentLink').addEventListener('click', showInstallmentPlans);
+        
+        function showInstallmentPlans() {
+            document.getElementById('paymentForm').querySelector('.mb-6').style.display = 'none';
+            document.querySelector('.installmentsDiv').style.display = 'block';
+        }
+        
+        // Add event listeners to installment options
+        const installmentOptions = document.querySelectorAll('.installmentsEle');
+        installmentOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                // Remove selected class from all options
+                installmentOptions.forEach(opt => opt.classList.remove('selected'));
+                
+                // Add selected class to clicked option
+                this.classList.add('selected');
+                
+                // Enable submit button
+                document.getElementById('installmentSubmitBtn').disabled = false;
+                
+                // Store selected months
+                selectedInstallmentMonths = this.getAttribute('data-months');
+            });
+        });
+        
+        // Installment submit button
+        document.getElementById('installmentSubmitBtn').addEventListener('click', function() {
+            document.querySelector('.installmentsDiv').style.display = 'none';
+            document.getElementById('paymentForm').querySelector('.mb-6').style.display = 'block';
+            
+            // Show installment info message
+            alert(`You've selected a ${selectedInstallmentMonths}-month installment plan. Click 'Process Payment' to complete your transaction.`);
+        });
+        
+        // Process payment button
+        document.getElementById('payBtn').addEventListener('click', function() {
+            // Show loading state
+            this.textContent = 'Processing...';
+            this.disabled = true;
+            
+            // Simulate API call delay
+            setTimeout(function() {
+                document.getElementById('paymentForm').classList.add('hidden');
+                document.getElementById('successScreen').classList.remove('hidden');
+                
+                // Show installment info if selected
+                if (selectedInstallmentMonths > 0) {
+                    document.getElementById('installmentConfirmation').classList.remove('hidden');
+                    document.getElementById('installmentMonths').textContent = selectedInstallmentMonths;
+                }
+                
+                // Call the mock payment complete endpoint
+                fetch(`/api/Payment/mock-payment-complete/${appointmentId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        installmentMonths: selectedInstallmentMonths
+                    })
+                }).catch(error => console.error('Error completing payment:', error));
+                
+            }, 2000);
+        });
+        
+        // Simulate failed payment
+        document.getElementById('failBtn').addEventListener('click', function() {
+            document.getElementById('paymentForm').classList.add('hidden');
+            document.getElementById('failureScreen').classList.remove('hidden');
+        });
+        
+        // Retry button
+        document.getElementById('retryBtn').addEventListener('click', function() {
+            document.getElementById('failureScreen').classList.add('hidden');
+            document.getElementById('paymentForm').classList.remove('hidden');
+            document.getElementById('payBtn').textContent = 'Process Payment';
+            document.getElementById('payBtn').disabled = false;
+        });
+        
+        // Done button
+        document.getElementById('doneBtn').addEventListener('click', function() {
+            // Redirect to the payment confirmation page in the main window
+            const clientAppUrl = window.opener ? 
+                window.opener.location.origin : 
+                'http://localhost:5173'; // Fallback URL
+                
+            const redirectUrl = `${clientAppUrl}/payment-confirmation?appointmentId=${appointmentId}&success=true`;
+            
+            // If this is a popup window, either redirect the opener and close this window,
+            // or redirect this window if there's no opener
+            if (window.opener) {
+                window.opener.location.href = redirectUrl;
+                window.close();
+            } else {
+                window.location.href = redirectUrl;
+            }
+        });
+        
+        // Close button
+        document.getElementById('closeBtn').addEventListener('click', function() {
+            // Redirect with cancelled status
+            const clientAppUrl = window.opener ? 
+                window.opener.location.origin : 
+                'http://localhost:5173';
+                
+            const redirectUrl = `${clientAppUrl}/payment-confirmation?appointmentId=${appointmentId}&success=false`;
+            
+            if (window.opener) {
+                window.opener.location.href = redirectUrl;
+                window.close();
+            } else {
+                window.location.href = redirectUrl;
+            }
+        });
+    </script>
+</body>
+</html> 

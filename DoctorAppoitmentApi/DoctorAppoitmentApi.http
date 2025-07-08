@@ -4,3 +4,79 @@ GET {{DoctorAppoitmentApi_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+### Phone Verification API
+
+@phoneToken = your_auth_token_here
+@userId = user_id_here
+
+### Request Phone Verification
+POST {{baseUrl}}/api/PhoneVerification/request-verification
+Content-Type: application/json
+Authorization: Bearer {{phoneToken}}
+
+{
+  "userId": "{{userId}}",
+  "newPhoneNumber": "+201234567890",
+  "userType": "Patient"
+}
+
+### Verify Phone Code
+POST {{baseUrl}}/api/PhoneVerification/verify-code
+Content-Type: application/json
+Authorization: Bearer {{phoneToken}}
+
+{
+  "userId": "{{userId}}",
+  "phoneNumber": "+201234567890",
+  "verificationCode": "123456",
+  "userType": "Patient"
+}
+
+### Phone Verification Tests
+
+### Request verification code for patient
+POST {{baseUrl}}/api/PhoneVerification/request-code
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "userId": "your-user-id-here",
+  "userType": "Patient",
+  "newPhoneNumber": "+201234567890"
+}
+
+### Verify code for patient
+POST {{baseUrl}}/api/PhoneVerification/verify-code
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "userId": "your-user-id-here",
+  "userType": "Patient",
+  "newPhoneNumber": "+201234567890",
+  "verificationCode": "123456"
+}
+
+### Request verification code for doctor
+POST {{baseUrl}}/api/PhoneVerification/request-code
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "userId": "your-doctor-id-here",
+  "userType": "Doctor",
+  "newPhoneNumber": "+201234567890"
+}
+
+### Verify code for doctor
+POST {{baseUrl}}/api/PhoneVerification/verify-code
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "userId": "your-doctor-id-here",
+  "userType": "Doctor",
+  "newPhoneNumber": "+201234567890",
+  "verificationCode": "123456"
+}

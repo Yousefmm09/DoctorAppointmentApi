@@ -10,6 +10,9 @@ public interface ILocalKnowledgeBase
     Task<(string specialty, float confidence)> DetectSpecialtyAsync(string query);
     Task<(bool matched, string response)> GetPatientSpecificResponseAsync(string query, string userId);
     
+    // Missing method that caused the error
+    Task<List<Appointment>> GetPatientAppointmentsAsync(string userId);
+    
     // New methods for enhanced functionality
     Task<(bool matched, string response, List<string> suggestedFollowUp)> GetEnhancedMedicalAdviceAsync(string symptoms, string userId);
     Task<(string preliminaryDiagnosis, List<string> possibleConditions, string urgencyLevel)> GeneratePreliminaryDiagnosisAsync(string symptoms, string medicalHistory);

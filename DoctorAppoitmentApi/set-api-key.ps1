@@ -1,1 +1,0 @@
-dotnet user-secrets set "OpenAI:ApiKey" "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" 
