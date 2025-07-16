@@ -2,7 +2,7 @@
 
 A powerful and scalable ASP.NET Core Web API designed to streamline the appointment booking process between patients and doctors, with advanced admin and chatbot functionalities.
 
-## 🔧 Tech Stack
+##  Tech Stack
 
 * **ASP.NET Core Web API**
 * **Entity Framework Core**
