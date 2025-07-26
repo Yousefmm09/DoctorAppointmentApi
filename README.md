@@ -123,6 +123,3 @@ GitHub: [github.com/Yousefmm09](https://github.com/Yousefmm09)
 
 MIT — feel free to fork and contribute!
 
----
-
-لو حابب أعمل لك نسخة `README.md` جاهزة بصيغة Markdown أقدر أعملها لك كملف وأرفقه. تحب؟
